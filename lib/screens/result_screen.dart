@@ -5,6 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -99,6 +101,58 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  Future<Uint8List?> _captureQrBytes() async {
+    final boundary = _qrKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 3.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
+  }
+
+  Future<void> _printQr() async {
+    try {
+      final imageBytes = await _captureQrBytes();
+      if (imageBytes == null) {
+        _showSnackBar('Could not capture QR code');
+        return;
+      }
+
+      await Printing.layoutPdf(
+        onLayout: (format) async {
+          final pdf = pw.Document();
+          final image = pw.MemoryImage(imageBytes);
+
+          pdf.addPage(
+            pw.Page(
+              pageFormat: format,
+              build: (context) => pw.Center(
+                child: pw.Column(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Image(image, width: 200, height: 200),
+                    pw.SizedBox(height: 20),
+                    pw.Text(
+                      widget.content,
+                      style: const pw.TextStyle(fontSize: 12),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+
+          return pdf.save();
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Error printing QR code: $e');
+      }
+    }
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -162,20 +216,26 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Save and share buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            // Save, share, print buttons
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
               children: [
                 ElevatedButton.icon(
                   onPressed: _saveQrAsImage,
                   icon: const Icon(Icons.save_alt, size: 18),
-                  label: const Text('Save as Image'),
+                  label: const Text('Save'),
                 ),
-                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _shareQr,
                   icon: const Icon(Icons.share, size: 18),
-                  label: const Text('Share QR'),
+                  label: const Text('Share'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _printQr,
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Print'),
                 ),
               ],
             ),
