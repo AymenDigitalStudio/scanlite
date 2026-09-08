@@ -83,6 +83,7 @@ class _ScannerScreenState extends State<ScannerScreen>
         arguments: {
           'content': scanResult.content,
           'type': scanResult.type,
+          'imagePath': null,
         },
       ).then((_) {
         _isProcessing = false;
@@ -99,7 +100,7 @@ class _ScannerScreenState extends State<ScannerScreen>
       await _cameraController!.toggleTorch();
       setState(() => _isFlashOn = !_isFlashOn);
     } catch (e) {
-      // Flash may not be available on some devices
+      // Flash may not be available
     }
   }
 
@@ -114,7 +115,6 @@ class _ScannerScreenState extends State<ScannerScreen>
 
       _isProcessing = true;
 
-      // Create a temporary controller for gallery scanning
       final galleryController = MobileScannerController(
         detectionSpeed: DetectionSpeed.noDuplicates,
         facing: CameraFacing.back,
@@ -140,6 +140,7 @@ class _ScannerScreenState extends State<ScannerScreen>
               arguments: {
                 'content': barcode.rawValue!,
                 'type': barcode.format.name,
+                'imagePath': image.path,
               },
             ).then((_) {
               _isProcessing = false;
@@ -176,14 +177,12 @@ class _ScannerScreenState extends State<ScannerScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Camera preview
           if (_cameraReady && _cameraController != null)
             MobileScanner(
               controller: _cameraController!,
               onDetect: _onDetect,
             ),
 
-          // Error display
           if (_error != null)
             Center(
               child: Container(
@@ -219,10 +218,8 @@ class _ScannerScreenState extends State<ScannerScreen>
               ),
             ),
 
-          // Scanner overlay
           CustomPaint(painter: _ScannerOverlayPainter()),
 
-          // Top controls
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 16,
@@ -242,7 +239,6 @@ class _ScannerScreenState extends State<ScannerScreen>
             ),
           ),
 
-          // Bottom controls
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 24,
             left: 0,

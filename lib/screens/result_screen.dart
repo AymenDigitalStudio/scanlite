@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,11 +9,13 @@ import '../utils/validators.dart';
 class ResultScreen extends StatelessWidget {
   final String content;
   final String type;
+  final String? imagePath;
 
   const ResultScreen({
     super.key,
     required this.content,
     required this.type,
+    this.imagePath,
   });
 
   @override
@@ -29,6 +32,21 @@ class ResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Scanned image
+            if (imagePath != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  File(imagePath!),
+                  height: 220,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -150,7 +168,6 @@ class ResultScreen extends StatelessWidget {
       final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      // Try with http:// if no scheme
       try {
         final uri = Uri.parse('https://$url');
         await launchUrl(uri, mode: LaunchMode.externalApplication);

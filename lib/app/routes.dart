@@ -22,6 +22,7 @@ class AppRoutes {
           builder: (_) => ResultScreen(
             content: args['content'] as String,
             type: args['type'] as String,
+            imagePath: args['imagePath'] as String?,
           ),
         );
       case '/settings':
