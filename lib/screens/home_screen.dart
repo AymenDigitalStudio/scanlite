@@ -107,6 +107,13 @@ class _HomeContentState extends State<_HomeContent> {
                   icon: const Icon(Icons.photo_library_outlined),
                   label: const Text('Scan from Gallery'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.generator),
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Generate QR Code'),
+                ),
                 const SizedBox(height: 48),
                 Text(
                   'Recent Scans',
