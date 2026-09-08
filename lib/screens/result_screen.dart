@@ -5,8 +5,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -67,7 +65,7 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
-  Future<void> _printQr() async {
+  Future<void> _shareQr() async {
     try {
       final boundary = _qrKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
@@ -84,39 +82,19 @@ class _ResultScreenState extends State<ResultScreen> {
         return;
       }
 
-      final imageBytes = byteData.buffer.asUint8List();
+      final bytes = byteData.buffer.asUint8List();
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/scanlite_qr.png');
+      await file.writeAsBytes(bytes);
 
-      await Printing.layoutPdf(
-        onLayout: (format) async {
-          final pdf = pw.Document();
-          final image = pw.MemoryImage(imageBytes);
-
-          pdf.addPage(
-            pw.Page(
-              pageFormat: format,
-              build: (context) => pw.Center(
-                child: pw.Column(
-                  mainAxisSize: pw.MainAxisSize.min,
-                  children: [
-                    pw.Image(image, width: 200, height: 200),
-                    pw.SizedBox(height: 20),
-                    pw.Text(
-                      widget.content,
-                      style: const pw.TextStyle(fontSize: 12),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          return pdf.save();
-        },
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], text: 'QR Code'),
       );
+
+      await file.delete();
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error printing QR code: $e');
+        _showSnackBar('Error sharing QR code: $e');
       }
     }
   }
@@ -184,20 +162,20 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Save and print buttons
+            // Save and share buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton.icon(
+                ElevatedButton.icon(
                   onPressed: _saveQrAsImage,
                   icon: const Icon(Icons.save_alt, size: 18),
                   label: const Text('Save as Image'),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _printQr,
-                  icon: const Icon(Icons.print, size: 18),
-                  label: const Text('Print QR'),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _shareQr,
+                  icon: const Icon(Icons.share, size: 18),
+                  label: const Text('Share QR'),
                 ),
               ],
             ),
