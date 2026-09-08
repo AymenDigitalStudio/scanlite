@@ -1,0 +1,33 @@
+name: scanlite
+description: "ScanLite — Offline QR Scanner"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  mobile_scanner: ^7.0.0
+  shared_preferences: ^2.5.0
+  share_plus: ^11.0.0
+  url_launcher: ^6.3.1
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "C:/Users/erpdz/Downloads/ca0788f6-e61a-4eab-bee6-a234265959ee.png"
+  adaptive_icon_background: "#0d1117"
+  adaptive_icon_foreground: "C:/Users/erpdz/Downloads/ca0788f6-e61a-4eab-bee6-a234265959ee.png"
+
+flutter:
+  uses-material-design: true
