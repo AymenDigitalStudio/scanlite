@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../app/routes.dart';
@@ -70,6 +71,14 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     _isProcessing = true;
     _cameraController?.stop();
+
+    final appState = AppProvider.of(context);
+    if (appState.storage.vibrateOnScan) {
+      HapticFeedback.heavyImpact();
+    }
+    if (appState.storage.playSound) {
+      SystemSound.play(SystemSoundType.click);
+    }
 
     final scanResult = ScanResult(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -143,6 +152,14 @@ class _ScannerScreenState extends State<ScannerScreen>
               timestamp: DateTime.now(),
             );
             AppProvider.of(context).history.add(scanResult);
+
+            final appState = AppProvider.of(context);
+            if (appState.storage.vibrateOnScan) {
+              HapticFeedback.heavyImpact();
+            }
+            if (appState.storage.playSound) {
+              SystemSound.play(SystemSoundType.click);
+            }
 
             _adService.showInterstitialAd(
               onDismissed: () {
