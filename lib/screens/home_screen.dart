@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../app/routes.dart';
 import '../main.dart';
 import '../utils/constants.dart';
@@ -156,25 +157,7 @@ class _HomeContentState extends State<_HomeContent> {
                             final item = items[index];
                             return Card(
                               margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  child: Text(
-                                    item.displayType.substring(0, 1),
-                                  ),
-                                ),
-                                title: Text(
-                                  item.displayType,
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                                subtitle: Text(
-                                  item.shortContent,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                trailing: Text(
-                                  item.formattedDate,
-                                  style: theme.textTheme.bodySmall,
-                                ),
+                              child: InkWell(
                                 onTap: () => Navigator.pushNamed(
                                   context,
                                   AppRoutes.result,
@@ -182,6 +165,57 @@ class _HomeContentState extends State<_HomeContent> {
                                     'content': item.content,
                                     'type': item.type,
                                   },
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        padding: const EdgeInsets.all(3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.08),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        child: QrImageView(
+                                          data: item.content,
+                                          version: QrVersions.auto,
+                                          backgroundColor: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.displayType,
+                                              style: theme.textTheme.labelSmall,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              item.shortContent,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.bodyMedium,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        item.formattedDate,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );

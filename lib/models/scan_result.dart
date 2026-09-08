@@ -5,6 +5,7 @@ class ScanResult {
   final String content;
   final String type;
   final DateTime timestamp;
+  final bool isGenerated;
   bool favorite;
 
   ScanResult({
@@ -12,6 +13,7 @@ class ScanResult {
     required this.content,
     required this.type,
     required this.timestamp,
+    this.isGenerated = false,
     this.favorite = false,
   });
 
@@ -21,6 +23,18 @@ class ScanResult {
     }
     if (content.startsWith('WIFI:')) {
       return ScanType.wifi;
+    }
+    if (content.startsWith('tel:')) {
+      return ScanType.phone;
+    }
+    if (content.startsWith('mailto:')) {
+      return ScanType.email;
+    }
+    if (content.startsWith('sms:')) {
+      return ScanType.sms;
+    }
+    if (content.startsWith('BEGIN:VCARD')) {
+      return ScanType.contact;
     }
     if (RegExp(r'^\+?[\d\s\-()]{7,}$').hasMatch(content)) {
       return ScanType.phone;
@@ -36,6 +50,8 @@ class ScanResult {
     ScanType.wifi => 'WiFi',
     ScanType.phone => 'Phone',
     ScanType.email => 'Email',
+    ScanType.sms => 'SMS',
+    ScanType.contact => 'Contact',
     ScanType.text => 'Text',
   };
 
@@ -59,6 +75,7 @@ class ScanResult {
     'content': content,
     'type': type,
     'timestamp': timestamp.toIso8601String(),
+    'isGenerated': isGenerated,
     'favorite': favorite,
   };
 
@@ -67,6 +84,7 @@ class ScanResult {
     content: json['content'] as String,
     type: json['type'] as String,
     timestamp: DateTime.parse(json['timestamp'] as String),
+    isGenerated: json['isGenerated'] as bool? ?? false,
     favorite: json['favorite'] as bool? ?? false,
   );
 
@@ -76,4 +94,4 @@ class ScanResult {
       ScanResult.fromJson(jsonDecode(source) as Map<String, dynamic>);
 }
 
-enum ScanType { url, wifi, phone, email, text }
+enum ScanType { url, wifi, phone, email, sms, contact, text }

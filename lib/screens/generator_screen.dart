@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../main.dart';
+import '../models/scan_result.dart';
 
 enum QRType {
   url,
@@ -25,12 +27,10 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
   final _controllers = <QRType, TextEditingController>{};
   String _generatedData = '';
 
-  // WiFi fields
   final _wifiSsidController = TextEditingController();
   final _wifiPassController = TextEditingController();
   String _wifiSecurity = 'WPA';
 
-  // Contact fields
   final _contactNameController = TextEditingController();
   final _contactPhoneController = TextEditingController();
   final _contactEmailController = TextEditingController();
@@ -90,6 +90,19 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         data = 'BEGIN:VCARD\nVERSION:3.0\nFN:$name\nTEL:$phone\nEMAIL:$email\nEND:VCARD';
         break;
     }
+
+    if (data.isEmpty) return;
+
+    // Save to history
+    final result = ScanResult(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      content: data,
+      type: _selectedType.name,
+      timestamp: DateTime.now(),
+      isGenerated: true,
+    );
+    AppProvider.of(context).history.add(result);
+
     setState(() => _generatedData = data);
   }
 
@@ -142,7 +155,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Type selector
             Text(
               'QR Code Type',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -168,20 +180,14 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
               }).toList(),
             ),
             const SizedBox(height: 24),
-
-            // Input fields based on type
             _buildInputFields(theme),
             const SizedBox(height: 24),
-
-            // Generate button
             FilledButton.icon(
               onPressed: _generate,
               icon: const Icon(Icons.qr_code),
               label: const Text('Generate QR Code'),
             ),
             const SizedBox(height: 24),
-
-            // QR Code display
             if (_generatedData.isNotEmpty) ...[
               Center(
                 child: Container(
@@ -206,8 +212,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Data preview
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -230,8 +234,6 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Actions
               Row(
                 children: [
                   Expanded(
@@ -241,9 +243,7 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                           ClipboardData(text: _generatedData),
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('QR data copied'),
-                          ),
+                          const SnackBar(content: Text('QR data copied')),
                         );
                       },
                       icon: const Icon(Icons.copy),
