@@ -22,6 +22,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   bool _cameraReady = false;
   String? _error;
   final AdService _adService = AdService();
+  static const _channel = MethodChannel('com.scanlite.scanlite/haptic');
 
   @override
   void initState() {
@@ -74,10 +75,10 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     final appState = AppProvider.of(context);
     if (appState.storage.vibrateOnScan) {
-      HapticFeedback.heavyImpact();
+      _channel.invokeMethod('vibrate');
     }
     if (appState.storage.playSound) {
-      SystemSound.play(SystemSoundType.click);
+      _channel.invokeMethod('playBeep');
     }
 
     final scanResult = ScanResult(
@@ -155,10 +156,10 @@ class _ScannerScreenState extends State<ScannerScreen>
 
             final appState = AppProvider.of(context);
             if (appState.storage.vibrateOnScan) {
-              HapticFeedback.heavyImpact();
+              _channel.invokeMethod('vibrate');
             }
             if (appState.storage.playSound) {
-              SystemSound.play(SystemSoundType.click);
+              _channel.invokeMethod('playBeep');
             }
 
             _adService.showInterstitialAd(
