@@ -53,129 +53,139 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeContent extends StatelessWidget {
+class _HomeContent extends StatefulWidget {
   const _HomeContent();
 
+  @override
+  State<_HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<_HomeContent> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appState = AppProvider.of(context);
-    final recentScans = appState.history.items.take(5).toList();
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 48),
-            Text(
-              AppConstants.appName,
-              style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              AppConstants.appSubtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 48),
-            FilledButton.icon(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.scanner),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan QR Code'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.scanner),
-              icon: const Icon(Icons.photo_library_outlined),
-              label: const Text('Scan from Gallery'),
-            ),
-            const SizedBox(height: 48),
-            Text(
-              'Recent Scans',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: recentScans.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.qr_code_2_outlined,
-                            size: 64,
-                            color: theme.colorScheme.outlineVariant,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No scans yet',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your scans stay on this device.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: recentScans.length,
-                      itemBuilder: (context, index) {
-                        final item = recentScans[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              child: Text(
-                                item.displayType.substring(0, 1),
+    return ListenableBuilder(
+      listenable: appState.history,
+      builder: (context, _) {
+        final items = appState.history.items.take(5).toList();
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 48),
+                Text(
+                  AppConstants.appName,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppConstants.appSubtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 48),
+                FilledButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.scanner),
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan QR Code'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.scanner),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Scan from Gallery'),
+                ),
+                const SizedBox(height: 48),
+                Text(
+                  'Recent Scans',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: items.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.qr_code_2_outlined,
+                                size: 64,
+                                color: theme.colorScheme.outlineVariant,
                               ),
-                            ),
-                            title: Text(
-                              item.displayType,
-                              style: theme.textTheme.labelSmall,
-                            ),
-                            subtitle: Text(
-                              item.shortContent,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Text(
-                              item.formattedDate,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.result,
-                              arguments: {
-                                'content': item.content,
-                                'type': item.type,
-                              },
-                            ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No scans yet',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Your scans stay on this device.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.builder(
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  child: Text(
+                                    item.displayType.substring(0, 1),
+                                  ),
+                                ),
+                                title: Text(
+                                  item.displayType,
+                                  style: theme.textTheme.labelSmall,
+                                ),
+                                subtitle: Text(
+                                  item.shortContent,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                trailing: Text(
+                                  item.formattedDate,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.result,
+                                  arguments: {
+                                    'content': item.content,
+                                    'type': item.type,
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -12,24 +12,48 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> {
+class _ScannerScreenState extends State<ScannerScreen>
+    with WidgetsBindingObserver {
   bool _isProcessing = false;
   bool _isFlashOn = false;
   MobileScannerController? _cameraController;
+  bool _cameraReady = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_cameraController == null) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _cameraController!.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _cameraController!.start();
+    }
+  }
+
+  void _initCamera() {
+    _cameraController?.dispose();
     _cameraController = MobileScannerController(
       detectionSpeed: DetectionSpeed.normal,
       facing: CameraFacing.back,
       torchEnabled: false,
     );
+    _cameraReady = true;
+    _error = null;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
+    _cameraController = null;
     super.dispose();
   }
 
@@ -71,62 +95,78 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   Future<void> _toggleFlash() async {
     if (_cameraController == null) return;
-    await _cameraController!.toggleTorch();
-    setState(() => _isFlashOn = !_isFlashOn);
+    try {
+      await _cameraController!.toggleTorch();
+      setState(() => _isFlashOn = !_isFlashOn);
+    } catch (e) {
+      // Flash may not be available on some devices
+    }
   }
 
   Future<void> _pickFromGallery() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image == null || !mounted) return;
-
-    _isProcessing = true;
-    _cameraController?.stop();
-
     try {
-      final result = await _cameraController?.analyzeImage(image.path);
-      if (result != null && result.barcodes.isNotEmpty) {
-        final barcode = result.barcodes.first;
-        if (barcode.rawValue != null && mounted) {
-          final scanResult = ScanResult(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            content: barcode.rawValue!,
-            type: barcode.format.name,
-            timestamp: DateTime.now(),
-          );
-          AppProvider.of(context).history.add(scanResult);
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (image == null || !mounted) return;
 
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.result,
-            arguments: {
-              'content': barcode.rawValue!,
-              'type': barcode.format.name,
-            },
-          ).then((_) {
-            _isProcessing = false;
-            if (mounted) _cameraController?.start();
-          });
-          return;
+      _isProcessing = true;
+
+      // Create a temporary controller for gallery scanning
+      final galleryController = MobileScannerController(
+        detectionSpeed: DetectionSpeed.noDuplicates,
+        facing: CameraFacing.back,
+        torchEnabled: false,
+      );
+
+      try {
+        final result = await galleryController.analyzeImage(image.path);
+        if (result != null && result.barcodes.isNotEmpty) {
+          final barcode = result.barcodes.first;
+          if (barcode.rawValue != null && mounted) {
+            final scanResult = ScanResult(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              content: barcode.rawValue!,
+              type: barcode.format.name,
+              timestamp: DateTime.now(),
+            );
+            AppProvider.of(context).history.add(scanResult);
+
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.result,
+              arguments: {
+                'content': barcode.rawValue!,
+                'type': barcode.format.name,
+              },
+            ).then((_) {
+              _isProcessing = false;
+            });
+            return;
+          }
         }
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No QR or barcode detected. Try another image.'),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No QR or barcode detected in this image.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } finally {
+        await galleryController.dispose();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error scanning image: $e')),
         );
       }
     }
 
     _isProcessing = false;
-    if (mounted) _cameraController?.start();
   }
 
   @override
@@ -137,10 +177,47 @@ class _ScannerScreenState extends State<ScannerScreen> {
         fit: StackFit.expand,
         children: [
           // Camera preview
-          MobileScanner(
-            controller: _cameraController!,
-            onDetect: _onDetect,
-          ),
+          if (_cameraReady && _cameraController != null)
+            MobileScanner(
+              controller: _cameraController!,
+              onDetect: _onDetect,
+            ),
+
+          // Error display
+          if (_error != null)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _error = null;
+                          _initCamera();
+                        });
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Scanner overlay
           CustomPaint(painter: _ScannerOverlayPainter()),

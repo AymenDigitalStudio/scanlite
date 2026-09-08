@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scan_result.dart';
-import '../services/share_service.dart';
 import '../utils/validators.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -19,7 +19,6 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scanType = _getScanType(content);
-    final shareService = ShareService();
 
     return Scaffold(
       appBar: AppBar(
@@ -30,7 +29,6 @@ class ResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Type badge
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -47,7 +45,6 @@ class ResultScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // Content card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -70,12 +67,10 @@ class ResultScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // WiFi info
             if (scanType == ScanType.wifi) ...[
               _WifiInfoCard(content: content),
               const SizedBox(height: 24),
             ],
-            // Action buttons
             if (scanType == ScanType.url) ...[
               FilledButton.icon(
                 onPressed: () => _openUrl(context, content),
@@ -112,7 +107,7 @@ class ResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: () => shareService.shareText(content),
+              onPressed: () => _shareContent(context),
               icon: const Icon(Icons.share),
               label: const Text('Share'),
             ),
@@ -138,36 +133,74 @@ class ResultScreen extends StatelessWidget {
     ScanType.text => 'Text',
   };
 
-  Future<void> _openUrl(BuildContext context, String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot open this URL')),
+  Future<void> _shareContent(BuildContext context) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(text: content),
       );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot share this content')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openUrl(BuildContext context, String url) async {
+    try {
+      final uri = Uri.tryParse(url);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot open this URL')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error opening URL')),
+        );
+      }
     }
   }
 
   Future<void> _makeCall(BuildContext context, String phone) async {
-    final uri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot make this call')),
-      );
+    try {
+      final uri = Uri(scheme: 'tel', path: phone);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot make this call')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error making call')),
+        );
+      }
     }
   }
 
   Future<void> _sendEmail(BuildContext context, String email) async {
-    final uri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No email app available')),
-      );
+    try {
+      final uri = Uri(scheme: 'mailto', path: email);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No email app available')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error opening email')),
+        );
+      }
     }
   }
 }

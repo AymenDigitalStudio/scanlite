@@ -10,13 +10,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _vibrateOnScan = true;
-  bool _playSound = true;
-  bool _autoSave = true;
-
   @override
   Widget build(BuildContext context) {
     final appState = AppProvider.of(context);
+    final storage = appState.storage;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -54,20 +51,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             title: const Text('Vibrate on scan'),
             subtitle: const Text('Vibrate when a code is detected'),
-            value: _vibrateOnScan,
-            onChanged: (v) => setState(() => _vibrateOnScan = v),
+            value: storage.vibrateOnScan,
+            onChanged: (v) async {
+              await storage.setVibrateOnScan(v);
+              setState(() {});
+            },
           ),
           SwitchListTile(
             title: const Text('Play sound'),
             subtitle: const Text('Play a sound when a code is detected'),
-            value: _playSound,
-            onChanged: (v) => setState(() => _playSound = v),
+            value: storage.playSound,
+            onChanged: (v) async {
+              await storage.setPlaySound(v);
+              setState(() {});
+            },
           ),
           SwitchListTile(
             title: const Text('Auto-save scans'),
             subtitle: const Text('Automatically save scans to history'),
-            value: _autoSave,
-            onChanged: (v) => setState(() => _autoSave = v),
+            value: storage.autoSave,
+            onChanged: (v) async {
+              await storage.setAutoSave(v);
+              setState(() {});
+            },
           ),
           const Divider(),
           _SectionHeader(title: 'History'),
@@ -75,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.delete_outline),
             title: const Text('Clear history'),
             subtitle: const Text('Delete all scan history'),
-            onTap: _confirmClearHistory,
+            onTap: () => _confirmClearHistory(context, appState),
           ),
           const Divider(),
           _SectionHeader(title: 'About'),
@@ -102,24 +108,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _confirmClearHistory() {
+  void _confirmClearHistory(BuildContext context, ScanAppState appState) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Clear History'),
         content: const Text('Are you sure you want to delete all scan history?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              AppProvider.of(context).history.clear();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('History cleared')),
-              );
+            onPressed: () async {
+              await appState.history.clear();
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('History cleared')),
+                );
+              }
             },
             child: const Text('Clear'),
           ),
