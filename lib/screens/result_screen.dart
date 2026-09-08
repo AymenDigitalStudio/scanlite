@@ -135,9 +135,7 @@ class ResultScreen extends StatelessWidget {
 
   Future<void> _shareContent(BuildContext context) async {
     try {
-      await SharePlus.instance.share(
-        ShareParams(text: content),
-      );
+      await SharePlus.instance.share(ShareParams(text: content));
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,19 +147,19 @@ class ResultScreen extends StatelessWidget {
 
   Future<void> _openUrl(BuildContext context, String url) async {
     try {
-      final uri = Uri.tryParse(url);
-      if (uri != null && await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot open this URL')),
-        );
-      }
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error opening URL')),
-        );
+      // Try with http:// if no scheme
+      try {
+        final uri = Uri.parse('https://$url');
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (e2) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cannot open this URL')),
+          );
+        }
       }
     }
   }
@@ -169,17 +167,11 @@ class ResultScreen extends StatelessWidget {
   Future<void> _makeCall(BuildContext context, String phone) async {
     try {
       final uri = Uri(scheme: 'tel', path: phone);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot make this call')),
-        );
-      }
+      await launchUrl(uri);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error making call')),
+          const SnackBar(content: Text('Cannot make this call')),
         );
       }
     }
@@ -188,17 +180,11 @@ class ResultScreen extends StatelessWidget {
   Future<void> _sendEmail(BuildContext context, String email) async {
     try {
       final uri = Uri(scheme: 'mailto', path: email);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No email app available')),
-        );
-      }
+      await launchUrl(uri);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error opening email')),
+          const SnackBar(content: Text('No email app available')),
         );
       }
     }
