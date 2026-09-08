@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/storage_service.dart';
 import '../services/history_service.dart';
 import 'app/theme.dart';
@@ -42,6 +43,7 @@ class AppProvider extends InheritedWidget {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize();
   final storage = StorageService();
   await storage.init();
   final state = ScanAppState(storage: storage);

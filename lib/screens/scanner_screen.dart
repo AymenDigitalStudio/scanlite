@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../app/routes.dart';
 import '../main.dart';
 import '../models/scan_result.dart';
+import '../services/ad_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -19,12 +20,14 @@ class _ScannerScreenState extends State<ScannerScreen>
   MobileScannerController? _cameraController;
   bool _cameraReady = false;
   String? _error;
+  final AdService _adService = AdService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
+    _adService.loadInterstitialAd();
   }
 
   @override
@@ -54,6 +57,7 @@ class _ScannerScreenState extends State<ScannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
     _cameraController = null;
+    _adService.dispose();
     super.dispose();
   }
 
@@ -77,20 +81,26 @@ class _ScannerScreenState extends State<ScannerScreen>
     AppProvider.of(context).history.add(scanResult);
 
     if (mounted) {
-      Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.result,
-        arguments: {
-          'content': scanResult.content,
-          'type': scanResult.type,
-          'imagePath': null,
+      _adService.showInterstitialAd(
+        onDismissed: () {
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.result,
+              arguments: {
+                'content': scanResult.content,
+                'type': scanResult.type,
+                'imagePath': null,
+              },
+            ).then((_) {
+              _isProcessing = false;
+              if (mounted) {
+                _cameraController?.start();
+              }
+            });
+          }
         },
-      ).then((_) {
-        _isProcessing = false;
-        if (mounted) {
-          _cameraController?.start();
-        }
-      });
+      );
     }
   }
 
@@ -134,17 +144,23 @@ class _ScannerScreenState extends State<ScannerScreen>
             );
             AppProvider.of(context).history.add(scanResult);
 
-            Navigator.pushReplacementNamed(
-              context,
-              AppRoutes.result,
-              arguments: {
-                'content': barcode.rawValue!,
-                'type': barcode.format.name,
-                'imagePath': image.path,
+            _adService.showInterstitialAd(
+              onDismissed: () {
+                if (mounted) {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.result,
+                    arguments: {
+                      'content': barcode.rawValue!,
+                      'type': barcode.format.name,
+                      'imagePath': image.path,
+                    },
+                  ).then((_) {
+                    _isProcessing = false;
+                  });
+                }
               },
-            ).then((_) {
-              _isProcessing = false;
-            });
+            );
             return;
           }
         }

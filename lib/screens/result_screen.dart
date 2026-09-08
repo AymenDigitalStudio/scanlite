@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -11,6 +12,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scan_result.dart';
+import '../services/ad_service.dart';
 import '../utils/validators.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -31,6 +33,19 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   final GlobalKey _qrKey = GlobalKey();
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _bannerAd = createBannerAd();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   Future<void> _saveQrAsImage() async {
     try {
@@ -438,6 +453,17 @@ class _ResultScreenState extends State<ResultScreen> {
                 icon: Icons.translate,
                 label: 'Open in Translator',
                 onTap: () => _openTranslator(context, widget.content),
+              ),
+            ],
+
+            if (_bannerAd != null) ...[
+              const SizedBox(height: 24),
+              Center(
+                child: SizedBox(
+                  width: _bannerAd!.size.width.toDouble(),
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                ),
               ),
             ],
           ],

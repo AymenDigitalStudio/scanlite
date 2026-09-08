@@ -1,0 +1,5 @@
+-keep class androidx.work.** { *; }
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.android.ump.** { *; }
+-dontwarn androidx.startup.**
+-keep class * extends androidx.startup.InitializationProvider { *; }
