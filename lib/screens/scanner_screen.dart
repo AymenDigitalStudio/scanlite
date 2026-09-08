@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import '../app/routes.dart';
 import '../main.dart';
 import '../models/scan_result.dart';
-import '../services/scanner_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -13,24 +12,15 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen>
-    with WidgetsBindingObserver {
-  MobileScannerController? _controller;
-  late ScannerService _scannerService;
+class _ScannerScreenState extends State<ScannerScreen> {
   bool _isProcessing = false;
   bool _isFlashOn = false;
+  MobileScannerController? _cameraController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _scannerService = ScannerService();
-    _initCamera();
-  }
-
-  void _initCamera() {
-    _controller?.dispose();
-    _controller = MobileScannerController(
+    _cameraController = MobileScannerController(
       detectionSpeed: DetectionSpeed.normal,
       facing: CameraFacing.back,
       torchEnabled: false,
@@ -38,67 +28,63 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      _controller?.stop();
-    } else if (state == AppLifecycleState.resumed) {
-      _controller?.start();
-    }
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
-    _controller = null;
+    _cameraController?.dispose();
     super.dispose();
   }
 
   void _onDetect(BarcodeCapture capture) {
     if (_isProcessing) return;
+    if (capture.barcodes.isEmpty) return;
 
-    final result = _scannerService.processDetection(capture);
-    if (result == null) return;
+    final barcode = capture.barcodes.first;
+    if (barcode.rawValue == null || barcode.rawValue!.isEmpty) return;
 
     _isProcessing = true;
-    _controller?.stop();
+    _cameraController?.stop();
 
-    // Save to history
-    AppProvider.of(context).history.add(result);
+    final scanResult = ScanResult(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      content: barcode.rawValue!,
+      type: barcode.format.name,
+      timestamp: DateTime.now(),
+    );
+
+    AppProvider.of(context).history.add(scanResult);
 
     if (mounted) {
       Navigator.pushReplacementNamed(
         context,
         AppRoutes.result,
-        arguments: {'content': result.content, 'type': result.type},
+        arguments: {
+          'content': scanResult.content,
+          'type': scanResult.type,
+        },
       ).then((_) {
         _isProcessing = false;
-        _scannerService.reset();
         if (mounted) {
-          _controller?.start();
+          _cameraController?.start();
         }
       });
     }
   }
 
   Future<void> _toggleFlash() async {
-    await _controller?.toggleTorch();
+    if (_cameraController == null) return;
+    await _cameraController!.toggleTorch();
     setState(() => _isFlashOn = !_isFlashOn);
   }
 
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return;
-
-    if (!mounted) return;
+    if (image == null || !mounted) return;
 
     _isProcessing = true;
-    _controller?.stop();
+    _cameraController?.stop();
 
     try {
-      final result = await _controller?.analyzeImage(image.path);
+      final result = await _cameraController?.analyzeImage(image.path);
       if (result != null && result.barcodes.isNotEmpty) {
         final barcode = result.barcodes.first;
         if (barcode.rawValue != null && mounted) {
@@ -119,8 +105,7 @@ class _ScannerScreenState extends State<ScannerScreen>
             },
           ).then((_) {
             _isProcessing = false;
-            _scannerService.reset();
-            if (mounted) _controller?.start();
+            if (mounted) _cameraController?.start();
           });
           return;
         }
@@ -135,13 +120,13 @@ class _ScannerScreenState extends State<ScannerScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error scanning image')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
 
     _isProcessing = false;
-    if (mounted) _controller?.start();
+    if (mounted) _cameraController?.start();
   }
 
   @override
@@ -151,14 +136,16 @@ class _ScannerScreenState extends State<ScannerScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (_controller != null)
-            MobileScanner(
-              controller: _controller!,
-              onDetect: _onDetect,
-            ),
-          CustomPaint(
-            painter: _ScannerOverlayPainter(),
+          // Camera preview
+          MobileScanner(
+            controller: _cameraController!,
+            onDetect: _onDetect,
           ),
+
+          // Scanner overlay
+          CustomPaint(painter: _ScannerOverlayPainter()),
+
+          // Top controls
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 16,
@@ -177,6 +164,8 @@ class _ScannerScreenState extends State<ScannerScreen>
               ],
             ),
           ),
+
+          // Bottom controls
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 24,
             left: 0,
@@ -184,23 +173,25 @@ class _ScannerScreenState extends State<ScannerScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Align the QR code inside the frame',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Align the QR code inside the frame',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _CircleButton(
-                      icon: Icons.photo_library_outlined,
-                      onTap: _pickFromGallery,
-                      size: 56,
-                    ),
-                  ],
+                _CircleButton(
+                  icon: Icons.photo_library_outlined,
+                  onTap: _pickFromGallery,
+                  size: 56,
                 ),
               ],
             ),
