@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../main.dart';
 import '../utils/constants.dart';
 
@@ -86,6 +87,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(),
           _SectionHeader(title: 'About'),
           ListTile(
+            leading: const Icon(Icons.star_outline),
+            title: const Text('Rate this app'),
+            subtitle: const Text('Rate us on Google Play'),
+            onTap: () => _openPlayStore(context),
+          ),
+          ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('Version'),
             subtitle: Text(AppConstants.version),
@@ -106,6 +113,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _openPlayStore(BuildContext context) async {
+    final uri = Uri.parse('market://details?id=com.scanlite.scanlite');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      final webUri = Uri.parse(
+          'https://play.google.com/store/apps/details?id=com.scanlite.scanlite');
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _confirmClearHistory(BuildContext context, ScanAppState appState) {
