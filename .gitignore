@@ -41,3 +41,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Release signing secrets - NEVER push to GitHub
+*.jks
+*.keystore
+android/key.properties
+android/app/release-key.jks
+KEYSTORE_INFO.txt
